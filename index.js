@@ -214,7 +214,7 @@ const WELLBEING_INGREDIENTS = {
  * 3. APPLICATION STATE & SILENT IP-SCOPED INDEXEDDB STORAGE
  */
 const DB_NAME = "BodyBatteryDB";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "checkins";
 const THEME_STORAGE_KEY = "bb_journal_theme_v2";
 const PINNED_STORAGE_KEY = "bb_pinned_habits_v2";
@@ -277,10 +277,12 @@ function openIndexedDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, {
+      const store = db.objectStoreNames.contains(STORE_NAME)
+        ? req.transaction.objectStore(STORE_NAME)
+        : db.createObjectStore(STORE_NAME, {
           keyPath: ["ip", "dateKey"],
         });
+      if (!store.indexNames.contains("by_ip")) {
         store.createIndex("by_ip", "ip", { unique: false });
       }
     };
@@ -357,135 +359,14 @@ function toggleTheme() {
 }
 
 /**
- * 5. PWA MANIFEST, DYNAMIC ICONS & SERVICE WORKER
+ * 5. PWA INSTALLATION & ONLINE STATUS
  */
 function setupPWA() {
-  // Generate clean 192x192 and 512x512 maskable PNG icons on canvas
-  function createBatteryIconDataUrl(size) {
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "#121214";
-    ctx.fillRect(0, 0, size, size);
-
-    const pad = size * 0.18;
-    const bodyW = size * 0.56;
-    const bodyH = size * 0.34;
-    const bodyX = pad;
-    const bodyY = (size - bodyH) / 2;
-
-    ctx.strokeStyle = "#F4F3EE";
-    ctx.lineWidth = Math.max(4, size * 0.035);
-    ctx.beginPath();
-    ctx.roundRect(bodyX, bodyY, bodyW, bodyH, size * 0.06);
-    ctx.stroke();
-
-    // Positive cap
-    ctx.fillStyle = "#F4F3EE";
-    ctx.beginPath();
-    ctx.roundRect(
-      bodyX + bodyW + size * 0.025,
-      size * 0.42,
-      size * 0.045,
-      size * 0.16,
-      size * 0.02,
-    );
-    ctx.fill();
-
-    // Charged green bars
-    const innerPad = size * 0.045;
-    const cellGap = size * 0.02;
-    const cellW = (bodyW - innerPad * 2 - cellGap * 3) / 4;
-    const cellH = bodyH - innerPad * 2;
-    ctx.fillStyle = "#10B981";
-    for (let i = 0; i < 4; i++) {
-      ctx.beginPath();
-      ctx.roundRect(
-        bodyX + innerPad + i * (cellW + cellGap),
-        bodyY + innerPad,
-        cellW,
-        cellH,
-        size * 0.02,
-      );
-      ctx.fill();
-    }
-    return canvas.toDataURL("image/png");
-  }
-
-  try {
-    const icon192 = createBatteryIconDataUrl(192);
-    const icon512 = createBatteryIconDataUrl(512);
-
-    const appleIcon = document.createElement("link");
-    appleIcon.rel = "apple-touch-icon";
-    appleIcon.href = icon192;
-    document.head.appendChild(appleIcon);
-
-    const manifestObj = {
-      name: "Body Battery — Daily Recovery Journal",
-      short_name: "Body Battery",
-      description:
-        "Track and assess your daily well-being battery across physical, mental & emotional, social, and spiritual sources.",
-      start_url: "./",
-      display: "standalone",
-      orientation: "portrait-primary",
-      background_color: "#F7F6F2",
-      theme_color: "#121214",
-      icons: [
-        {
-          src: icon192,
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "any maskable",
-        },
-        {
-          src: icon512,
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "any maskable",
-        },
-      ],
-    };
-
-    const manifestBlob = new Blob([JSON.stringify(manifestObj)], {
-      type: "application/manifest+json",
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.error("Service worker registration failed:", error);
     });
-    const manifestLink = document.createElement("link");
-    manifestLink.rel = "manifest";
-    manifestLink.href = URL.createObjectURL(manifestBlob);
-    document.head.appendChild(manifestLink);
-
-    // Register lightweight offline Service Worker
-    if ("serviceWorker" in navigator) {
-      const swCode = `
-            const CACHE = 'body-battery-journal-v1';
-            self.addEventListener('install', (e) => {
-              self.skipWaiting();
-            });
-            self.addEventListener('activate', (e) => {
-              e.waitUntil(self.clients.claim());
-            });
-            self.addEventListener('fetch', (e) => {
-              if (e.request.method !== 'GET') return;
-              e.respondWith(
-                fetch(e.request)
-                  .then((res) => {
-                    const copy = res.clone();
-                    caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-                    return res;
-                  })
-                  .catch(() => caches.match(e.request))
-              );
-            });
-          `;
-      const swBlob = new Blob([swCode], { type: "application/javascript" });
-      navigator.serviceWorker
-        .register(URL.createObjectURL(swBlob))
-        .catch(() => {});
-    }
-  } catch (_) {}
+  }
 
   // Listen for browser native install prompt
   window.addEventListener("beforeinstallprompt", (e) => {
