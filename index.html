@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Body Battery — Daily Recovery & Well-Being</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Instrument Serif (Display), Inter (Body), JetBrains Mono (Tabular Numerals) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            stone: {
+              canvas: '#F7F6F2',
+              subtle: '#EFECE6',
+              border: '#E4E4E7',
+              ink: '#18181B',
+              muted: '#52525B',
+              soft: '#71717A',
+            },
+            charge: {
+              empty: '#B91C1C',     // 0-3
+              low: '#B45309',       // 4-5
+              charged: '#0F766E',   // 6-7
+              full: '#15803D',      // 8-9
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F7F6F2;
+      color: #18181B;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(24, 24, 27, 0.16);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(24, 24, 27, 0.28);
+    }
+
+    .modal-backdrop {
+      transition: opacity 0.22s ease;
+    }
+    .modal-panel {
+      transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-emerald-900/15 selection:text-stone-ink">
+
+  <!-- Gentle Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- Minimalist Editorial Header -->
+  <header class="sticky top-0 z-30 bg-[#F7F6F2]/90 backdrop-blur-md border-b border-stone-border">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Brand -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-stone-ink text-[#F7F6F2] flex items-center justify-center">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
+            <line x1="22" y1="11" x2="22" y2="13"></line>
+            <line x1="6" y1="10" x2="6" y2="14"></line>
+            <line x1="10" y1="10" x2="10" y2="14"></line>
+          </svg>
+        </div>
+        <div>
+          <span class="font-serif text-2xl tracking-tight leading-none text-stone-ink">Body Battery</span>
+          <span class="hidden sm:inline-block ml-2.5 text-xs text-stone-soft border-l border-stone-border pl-2.5">Daily Recovery &amp; Well-Being</span>
+        </div>
+      </div>
+
+      <!-- Everyday User Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Daily Reminder Bell -->
+        <button onclick="toggleReminderDrawer()" title="Daily check-in reminder" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-stone-muted hover:text-stone-ink bg-white border border-stone-border hover:border-stone-400 transition-colors relative">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="hidden sm:inline">Daily Reminder</span>
+          <span id="reminder-active-dot" class="hidden w-1.5 h-1.5 rounded-full bg-charge-full"></span>
+        </button>
+
+        <!-- Primary Check-In / Single-Edit / Locked Action -->
+        <button id="header-checkin-btn" onclick="openQuizModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-stone-ink text-white hover:bg-zinc-800 transition-all">
+          <span id="header-checkin-btn-text">Today’s Check-In</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Gentle Daily Reminder Drawer -->
+  <div id="reminder-drawer" class="hidden border-b border-stone-border bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h3 class="text-sm font-semibold text-stone-ink">Daily Check-In Reminder</h3>
+        <p class="text-xs text-stone-muted mt-0.5">
+          Your check-in opens automatically each day when you visit. Set a preferred daily reminder time if you’d like a gentle nudge.
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-medium bg-stone-canvas px-3 py-2 rounded-lg border border-stone-border">
+          <input type="checkbox" id="reminder-enabled-checkbox" onchange="handleReminderToggle(this.checked)" class="rounded border-stone-300 text-stone-ink focus:ring-stone-ink">
+          <span>Remind me daily</span>
+        </label>
+        <input type="time" id="reminder-time-input" value="08:30" onchange="saveReminderSettings()" class="text-xs font-mono bg-stone-canvas px-3 py-2 rounded-lg border border-stone-border text-stone-ink focus:outline-none focus:border-stone-ink">
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Editorial Workspace -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-10 space-y-8">
+
+    <!-- Calm Invitation Banner (Shown only when today's check-in has not yet been completed) -->
+    <div id="pending-today-banner" class="hidden rounded-xl p-4 sm:p-5 bg-white border border-stone-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="space-y-0.5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-charge-low">Daily Reflection Open</p>
+        <p class="text-sm text-stone-ink">Take a quiet moment to check in on your recovery for <span id="banner-date-label" class="font-medium">today</span>.</p>
+      </div>
+      <button onclick="openQuizModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-stone-ink text-white hover:bg-zinc-800 transition-colors shrink-0">
+        Begin Check-In
+      </button>
+    </div>
+
+    <!-- Top Row: 9-Cell Segmented Battery & Exact Assessment Feedback -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column (5 cols): Tactile 9-Cell Battery Gauge & 4 Sources -->
+      <section class="lg:col-span-5 rounded-xl bg-white border border-stone-border p-6 sm:p-7 flex flex-col justify-between">
+        <div>
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-widest text-stone-soft">Current Charge</p>
+              <h1 id="active-entry-date-title" class="font-serif text-3xl text-stone-ink mt-1">Today’s Battery</h1>
+            </div>
+            <div id="edit-status-pill" class="text-right">
+              <!-- Populated dynamically: Edit button (1 left) or Completed status -->
+            </div>
+          </div>
+
+          <!-- Tactile 9-Cell Segmented Battery Meter -->
+          <div class="my-7">
+            <div class="flex items-baseline justify-between mb-2.5">
+              <div class="flex items-baseline gap-1.5">
+                <span id="battery-score-number" class="font-mono text-4xl font-semibold tabular-nums text-stone-ink">0</span>
+                <span class="font-mono text-base text-stone-soft">/ 9</span>
+              </div>
+              <span id="battery-percent-label" class="font-mono text-xs font-medium text-stone-muted tabular-nums">0% charged</span>
+            </div>
+
+            <!-- Battery Hardware Shell with 9 Distinct Cells -->
+            <div class="flex items-center">
+              <div class="flex-1 p-2 rounded-xl border-2 border-stone-ink bg-stone-canvas">
+                <div id="battery-cells-container" class="grid grid-cols-9 gap-1.5 h-12">
+                  <!-- 9 cells rendered via JS -->
+                </div>
+              </div>
+              <!-- Positive Terminal Cap -->
+              <div class="w-2 h-6 bg-stone-ink rounded-r-sm ml-0.5"></div>
+            </div>
+          </div>
+
+          <!-- Four Sources of Well-Being Breakdown -->
+          <div class="pt-5 border-t border-stone-border">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[11px] font-semibold uppercase tracking-widest text-stone-soft">Four Sources of Well-Being</span>
+              <span class="text-[11px] text-stone-soft">Balance check</span>
+            </div>
+            <div id="pillar-bars-container" class="grid grid-cols-2 gap-2.5">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Subtle Personal Summary Footer -->
+        <div class="grid grid-cols-3 gap-2 mt-6 pt-5 border-t border-stone-border text-center">
+          <div>
+            <div id="stat-streak" class="font-mono text-base font-semibold tabular-nums text-stone-ink">0d</div>
+            <div class="text-[11px] text-stone-soft mt-0.5">Streak</div>
+          </div>
+          <div class="border-x border-stone-border">
+            <div id="stat-avg" class="font-mono text-base font-semibold tabular-nums text-stone-ink">—</div>
+            <div class="text-[11px] text-stone-soft mt-0.5">Average</div>
+          </div>
+          <div>
+            <div id="stat-total" class="font-mono text-base font-semibold tabular-nums text-stone-ink">0</div>
+            <div class="text-[11px] text-stone-soft mt-0.5">Check-Ins</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column (7 cols): Exact Scoring Tier Feedback & Course Focus -->
+      <section class="lg:col-span-7 rounded-xl bg-white border border-stone-border p-6 sm:p-7 flex flex-col justify-between space-y-6">
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <span id="tier-badge" class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border border-stone-border bg-stone-canvas text-stone-ink">
+              0–3 Statements True
+            </span>
+            <span class="text-xs text-stone-soft">Hamilton Recovery Assessment</span>
+          </div>
+
+          <!-- Exact Tier Title -->
+          <h2 id="tier-title" class="font-serif text-3xl sm:text-4xl text-stone-ink leading-tight">
+            Your battery is empty
+          </h2>
+
+          <!-- Exact Tier Commentary -->
+          <p id="tier-commentary" class="mt-3 text-sm sm:text-[15px] leading-relaxed text-stone-muted">
+            Regularly charging your battery —and maintaining its charge, would benefit all areas of your life.
+          </p>
+
+          <!-- Exact Suggested Course Focus Areas -->
+          <div class="mt-5 p-4 sm:p-5 rounded-xl bg-stone-canvas border border-stone-border">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-ink mb-3">
+              Comments and suggested course focus areas — As you move through this course, focus on:
+            </h3>
+            <ul id="tier-focus-list" class="space-y-2.5 text-sm text-stone-muted">
+              <!-- Exact bullets populated by JS -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Pinned Focus Ingredients for Today + Workbook Reflection -->
+        <div class="space-y-4 pt-2 border-t border-stone-border">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-stone-ink">Today’s Focus Ingredients</h3>
+              <p class="text-xs text-stone-soft">Pin up to 3 practices below to recharge your lowest source today.</p>
+            </div>
+            <a href="#ingredients-section" class="text-xs font-medium text-stone-ink underline underline-offset-4 hover:text-stone-muted">
+              Explore all ingredients ↓
+            </a>
+          </div>
+
+          <div id="pinned-ingredients-container" class="flex flex-wrap gap-2">
+            <!-- Pinned items or prompt to pin -->
+          </div>
+
+          <!-- Forward Learning Workbook Reflection Note -->
+          <div id="saved-reflection-box" class="hidden p-4 rounded-xl bg-stone-canvas border border-stone-border">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-stone-soft">Forward Learning Workbook Reflection</span>
+              <span id="reflection-date-tag" class="text-[11px] font-mono text-stone-soft"></span>
+            </div>
+            <p id="saved-reflection-text" class="text-sm text-stone-ink leading-relaxed"></p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- WHAT ARE THE INGREDIENTS OF WELL-BEING? (Full Interactive Guide)    -->
+    <!-- =================================================================== -->
+    <section id="ingredients-section" class="rounded-xl bg-white border border-stone-border p-6 sm:p-8 space-y-6">
+      <!-- Editorial Header & Exact Curriculum Introduction -->
+      <div class="max-w-3xl space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[11px] font-semibold uppercase tracking-widest text-stone-soft">Well-Being Curriculum Guide</span>
+          <span id="biggest-opportunity-pill" class="hidden px-2.5 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-charge-low border border-amber-200">
+            Biggest opportunity today: Physical
+          </span>
+        </div>
+        <h2 class="font-serif text-3xl sm:text-4xl text-stone-ink">What are the ingredients of well-being?</h2>
+        <p class="text-sm sm:text-[15px] leading-relaxed text-stone-muted">
+          Your well-being battery is fueled by four sources: physical, mental &amp; emotional, social, and spiritual. However, our habits often cause us to prioritize just one or two sources. To ensure your well-being is truly at its best, combine all four. Think about which source offers the biggest opportunity to charge your battery, and focus on the ingredients of that source below.
+        </p>
+      </div>
+
+      <!-- Source Filter Tabs + Individual / Team View Control -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-border">
+        <!-- 4 Source Tabs -->
+        <div id="source-tabs-container" class="flex flex-wrap gap-2">
+          <!-- Rendered dynamically with score indicators -->
+        </div>
+
+        <!-- Context Filter: All / Individual / Team -->
+        <div class="inline-flex rounded-lg bg-stone-canvas p-1 border border-stone-border self-start">
+          <button onclick="setPracticeAudience('both')" id="aud-both-btn" class="px-3 py-1.5 rounded-md text-xs font-medium bg-white text-stone-ink shadow-sm transition-all">
+            Individual &amp; Team
+          </button>
+          <button onclick="setPracticeAudience('individual')" id="aud-ind-btn" class="px-3 py-1.5 rounded-md text-xs font-medium text-stone-muted hover:text-stone-ink transition-all">
+            Individual
+          </button>
+          <button onclick="setPracticeAudience('team')" id="aud-team-btn" class="px-3 py-1.5 rounded-md text-xs font-medium text-stone-muted hover:text-stone-ink transition-all">
+            Team
+          </button>
+        </div>
+      </div>
+
+      <!-- Categories & Ingredients Grid for Selected Source -->
+      <div id="ingredients-categories-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Populated dynamically with exact Individual and Team practices -->
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- HONEST REFLECTION HISTORY (Only real user check-ins, zero dummy)   -->
+    <!-- =================================================================== -->
+    <section class="rounded-xl bg-white border border-stone-border p-6 sm:p-8">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+        <div>
+          <h2 class="font-serif text-2xl sm:text-3xl text-stone-ink">Your Check-In Journal</h2>
+          <p class="text-xs sm:text-sm text-stone-muted mt-0.5">Select any past day to review your battery level, workbook notes, and pinned practices.</p>
+        </div>
+      </div>
+
+      <div id="history-log-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <!-- Genuine entries or calm empty state -->
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- DAILY ASSESSMENT MODAL (Auto-opens once per day until submitted)      -->
+  <!-- ===================================================================== -->
+  <div id="quiz-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <!-- Backdrop -->
+    <div onclick="closeQuizModal()" class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs modal-backdrop"></div>
+
+    <!-- Modal Panel -->
+    <div class="relative w-full max-w-2xl rounded-2xl bg-white border border-stone-border shadow-xl overflow-hidden modal-panel my-auto">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-5 border-b border-stone-border bg-stone-canvas flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modal-day-badge" class="text-[11px] font-semibold uppercase tracking-wider text-stone-muted">
+              Daily Reflection
+            </span>
+            <span class="text-stone-300">•</span>
+            <span id="modal-date-display" class="text-xs font-medium text-stone-muted"></span>
+          </div>
+          <h2 class="font-serif text-2xl sm:text-3xl text-stone-ink mt-1">Assessing your battery level</h2>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <div class="text-[11px] uppercase tracking-wider text-stone-soft">Charge</div>
+            <div class="font-mono text-xl font-semibold tabular-nums text-stone-ink">
+              <span id="modal-live-score">0</span><span class="text-sm text-stone-soft">/9</span>
+            </div>
+          </div>
+          <button onclick="closeQuizModal()" title="Close" class="p-2 rounded-lg text-stone-soft hover:text-stone-ink hover:bg-stone-200/60 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Scrollable Body -->
+      <div class="px-6 py-5 max-h-[72vh] overflow-y-auto space-y-5">
+        <!-- Exact Intro Paragraph -->
+        <p class="text-xs sm:text-sm text-stone-muted leading-relaxed">
+          We expanded on Hamilton’s quiz to help you assess and build awareness of your level of recovery.
+          Take a moment to reflect in the <strong class="font-semibold text-stone-ink">Forward Learning Workbook</strong> about which of the following statements are true for you, and making sure to note if certain categories are particularly strong or weak:
+        </p>
+
+        <!-- Single-Edit Policy Reminder Banner (Shown when editing an already-submitted entry) -->
+        <div id="modal-edit-warning" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+          <strong>One-time edit:</strong> You can update today’s check-in once. After saving this update, today’s assessment will be locked for the day.
+        </div>
+
+        <!-- 9 Exact Statements -->
+        <div id="quiz-statements-list" class="space-y-2">
+          <!-- Rendered via JS -->
+        </div>
+
+        <!-- Live Assessment Preview -->
+        <div class="p-4 rounded-xl bg-stone-canvas border border-stone-border">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="modal-verdict-title" class="text-sm font-semibold text-stone-ink">Your battery is empty</span>
+            <span id="modal-verdict-range" class="text-xs font-mono text-stone-muted">0–3 statements true</span>
+          </div>
+          <p id="modal-verdict-desc" class="text-xs text-stone-muted mt-1.5 leading-relaxed"></p>
+        </div>
+
+        <!-- Forward Learning Workbook Reflection Note -->
+        <div>
+          <label for="workbook-note-input" class="block text-xs font-semibold uppercase tracking-wider text-stone-ink mb-1.5">
+            Forward Learning Workbook Reflection (Optional)
+          </label>
+          <textarea id="workbook-note-input" rows="2" placeholder="Note if certain categories feel particularly strong or weak today..." class="w-full rounded-xl bg-stone-canvas border border-stone-border px-3.5 py-2.5 text-sm text-stone-ink placeholder-stone-400 focus:outline-none focus:border-stone-ink transition-colors"></textarea>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-stone-border bg-stone-canvas flex flex-wrap items-center justify-between gap-3">
+        <button onclick="closeQuizModal()" class="px-4 py-2 rounded-lg text-xs font-medium text-stone-muted hover:text-stone-ink transition-colors">
+          Later
+        </button>
+        <div class="flex items-center gap-2.5">
+          <button onclick="resetQuizSelections()" class="px-3.5 py-2 rounded-lg text-xs font-medium text-stone-muted border border-stone-border bg-white hover:border-stone-400 transition-colors">
+            Reset
+          </button>
+          <button id="modal-submit-btn" onclick="submitDailyAssessment()" class="px-5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-stone-ink text-white hover:bg-zinc-800 transition-colors">
+            Submit Assessment
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * =========================================================================
+     * 1. EXACT ASSESSMENT STATEMENTS, TIERS & WELL-BEING INGREDIENTS CURRICULUM
+     * =========================================================================
+     */
+    const STATEMENTS = [
+      { id: 0, text: "I slept very well last night.", source: "Physical" },
+      { id: 1, text: "I have clear, purposeful intentions for the day.", source: "Spiritual" },
+      { id: 2, text: "I am looking forward to the day’s activities.", source: "Mental & Emotional" },
+      { id: 3, text: "I am optimistic about my future.", source: "Spiritual" },
+      { id: 4, text: "I feel vigorous and energetic.", source: "Physical" },
+      { id: 5, text: "My diet is healthy and well-balanced.", source: "Physical" },
+      { id: 6, text: "I am experiencing very little fatigue or burnout.", source: "Physical" },
+      { id: 7, text: "I can focus on the things that matter most.", source: "Mental & Emotional" },
+      { id: 8, text: "I feel connected to the important people in my life.", source: "Social" }
+    ];
+
+    const SHARED_FOCUS_BULLETS = [
+      "How to tap into your sources of well-being: physical, mental & emotional, social, and spiritual",
+      "Specific practices that stand out to you and are worth turning into habits",
+      "The impact a “full battery” could have on your life"
+    ];
+
+    const WELLBEING_SOURCES = [
+      {
+        key: "Physical",
+        label: "Physical",
+        statementIndices: [0, 4, 5, 6],
+        categories: [
+          {
+            name: "Sleep",
+            individual: [
+              "Set a daily cutoff time for work or screen time and aim to go to sleep at the same time each day.",
+              "Aim for 7 to 8 hours of sleep.",
+              "Create a ritual to help you power down for the day (e.g., light reading before sleep)."
+            ],
+            team: [
+              "Commit to no calls or emails in the early mornings, evenings, or on weekends."
+            ]
+          },
+          {
+            name: "Exercise",
+            individual: [
+              "Maintain or increase your weekly exercise goals.",
+              "Use spontaneous opportunities to move (e.g., a last-minute meeting cancellation).",
+              "Take stretching breaks."
+            ],
+            team: [
+              "Aim to have a few meetings each week during which team members do not need to be on their laptop or video and can move around instead.",
+              "Hold each other accountable for pursuing personal fitness goals. Share and discuss these during weekly check-in meetings."
+            ]
+          },
+          {
+            name: "Nutrition",
+            individual: [
+              "Start with a small goal (e.g., no sugary drinks) and build your way up.",
+              "Modulate your daily food intake with your level of activity.",
+              "Stay hydrated."
+            ],
+            team: [
+              "Block time on the team calendar for lunch every day and do not set up any meetings during this time. You can also use it as social time."
+            ]
+          }
+        ]
+      },
+      {
+        key: "Mental & Emotional",
+        label: "Mental & Emotional",
+        statementIndices: [2, 7],
+        categories: [
+          {
+            name: "Hobbies",
+            individual: [
+              "Block time for your hobbies ahead of time and on a recurring basis—solo or in groups."
+            ],
+            team: [
+              "Hold each other accountable for pursuing hobbies and personal goals. Share and discuss these during weekly check-in meetings."
+            ]
+          },
+          {
+            name: "Meditation",
+            individual: [
+              "Commit to a habit of daily meditation. Set aside time, however little, and stick with it even if it takes time to see results."
+            ],
+            team: [
+              "Block time daily for a short team meditation and invite the full team."
+            ]
+          },
+          {
+            name: "Focus",
+            individual: [
+              "Focus on one task at a time.",
+              "Address the distractions that lead to multitasking (e.g., put your phone away at the start of meetings or family dinners, shut off your email notifications)."
+            ],
+            team: [
+              "Set norms as a team for how you will interact during meetings (e.g., we all avoid email)."
+            ]
+          },
+          {
+            name: "Introspection",
+            individual: [
+              "Consider journaling or other ways to express and process your inner thoughts."
+            ],
+            team: [
+              "Set up ”team reflection\" time once a month, with the full team, to reflect on meaning (or challenges) from your ongoing effort."
+            ]
+          }
+        ]
+      },
+      {
+        key: "Social",
+        label: "Social",
+        statementIndices: [8],
+        categories: [
+          {
+            name: "Relationships",
+            individual: [
+              "Prioritize human connections.",
+              "Spend quality time daily with at least one person who is important to you.",
+              "Pick an activity to do with a friend.",
+              "Bring attention, vulnerability, empathy, and compassion to your relationships."
+            ],
+            team: [
+              "Build time and space into your meetings for meaningful human connections (e.g., on Friday, ask about weekend plans).",
+              "Take advantage of informal opportunities to strengthen your relationships (e.g., virtual team event)."
+            ]
+          },
+          {
+            name: "Societal role",
+            individual: [
+              "Define your personal values.",
+              "Align your priorities with your purpose and values.",
+              "During moments of low energy, reflect on your purpose to remind yourself of what truly matters to you.",
+              "Get more involved in your local community."
+            ],
+            team: [
+              "Have a conversation about your team’s shared values and purpose.",
+              "If possible, volunteer as a team or support a cause together."
+            ]
+          }
+        ]
+      },
+      {
+        key: "Spiritual",
+        label: "Spiritual",
+        statementIndices: [1, 3],
+        categories: [
+          {
+            name: "Professional calling",
+            individual: [
+              "Reflect regularly on your work contributions and how they connect to your purpose."
+            ],
+            team: [
+              "Reflect regularly on the potential or ongoing impact of your team’s work, and what that work means—to each of you individually, to the team’s purpose, and to the organization."
+            ]
+          },
+          {
+            name: "Spiritual connection",
+            individual: [
+              "Begin each day with positive affirmations.",
+              "Express gratitude for life’s little gifts."
+            ],
+            team: [
+              "Start or end meetings with a sign of gratitude, a positive affirmation, and/or a celebration."
+            ]
+          }
+        ]
+      }
+    ];
+
+    function getAssessmentTier(score) {
+      if (score <= 3) {
+        return {
+          range: "0–3",
+          title: "Your battery is empty",
+          commentary: "Regularly charging your battery —and maintaining its charge, would benefit all areas of your life.",
+          bullets: SHARED_FOCUS_BULLETS,
+          cellFill: "#B91C1C",
+          badgeStyle: "bg-red-50 text-charge-empty border-red-200",
+          textStyle: "text-charge-empty"
+        };
+      } else if (score <= 5) {
+        return {
+          range: "4–5",
+          title: "Your battery charge is running low and needs attention",
+          commentary: "You have some well-being charge left, but it would be better to have more. Regularly charging your battery —and maintaining its charge, would benefit all areas of your life.",
+          bullets: SHARED_FOCUS_BULLETS,
+          cellFill: "#B45309",
+          badgeStyle: "bg-amber-50 text-charge-low border-amber-200",
+          textStyle: "text-charge-low"
+        };
+      } else if (score <= 7) {
+        return {
+          range: "6–7",
+          title: "You would benefit from extra charge to your battery",
+          commentary: "Your well-being battery is charged, but take a look—is there one category where you scored lower than others? Research shows we need a balance of all four areas for optimal well-being. Maintaining this level of well-being is real work, but it is worth it!",
+          bullets: SHARED_FOCUS_BULLETS,
+          cellFill: "#0F766E",
+          badgeStyle: "bg-teal-50 text-charge-charged border-teal-200",
+          textStyle: "text-charge-charged"
+        };
+      } else {
+        return {
+          range: "8–9",
+          title: "Your battery is fully charged",
+          commentary: "Right now, you are moving through life with a fully charged battery—which is great! You are starting from a good place, but there are times when you might find it difficult to maintain this level.",
+          bullets: SHARED_FOCUS_BULLETS,
+          cellFill: "#15803D",
+          badgeStyle: "bg-emerald-50 text-charge-full border-emerald-200",
+          textStyle: "text-charge-full"
+        };
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 2. SILENT BACKGROUND IDENTITY & ON-DEVICE INDEXEDDB STORAGE
+     *    (Zero UI exposure of technical details; zero dummy data)
+     * =========================================================================
+     */
+    const DB_NAME = 'BodyBatteryDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'assessments';
+    const REMINDER_STORAGE_KEY = 'bb_daily_reminder_prefs';
+    const FALLBACK_KEY_STORAGE = 'bb_device_profile_id';
+
+    let dbInstance = null;
+    let profileScopeKey = 'default_device';
+    let entries = [];
+    let activeDateKey = getLocalDateKey(0);
+    let currentQuizAnswers = new Array(9).fill(false);
+    let selectedSourceKey = 'Physical';
+    let selectedAudience = 'both'; // 'both' | 'individual' | 'team'
+    let reminderIntervalId = null;
+    let lastNotifiedMinute = '';
+
+    function getLocalDateKey(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function formatFriendlyDate(dateKey) {
+      const today = getLocalDateKey(0);
+      const yesterday = getLocalDateKey(-1);
+      if (dateKey === today) return 'Today';
+      if (dateKey === yesterday) return 'Yesterday';
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+
+    // Silently resolve public IP with graceful offline fallback
+    async function resolveSilentScopeKey() {
+      const endpoints = [
+        'https://api.ipify.org?format=json',
+        'https://api64.ipify.org?format=json',
+        'https://ipapi.co/json/'
+      ];
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 2500);
+          const res = await fetch(url, { signal: controller.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.ip) {
+              return String(data.ip).trim();
+            }
+          }
+        } catch (_) {
+          // Silently try next source
+        }
+      }
+      // Graceful offline device scope
+      try {
+        let localId = localStorage.getItem(FALLBACK_KEY_STORAGE);
+        if (!localId) {
+          localId = 'device_' + Math.random().toString(36).slice(2, 11);
+          localStorage.setItem(FALLBACK_KEY_STORAGE, localId);
+        }
+        return localId;
+      } catch (_) {
+        return 'device_local';
+      }
+    }
+
+    function openIndexedDB() {
+      return new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) {
+          reject(new Error('Storage unavailable'));
+          return;
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            const store = db.createObjectStore(STORE_NAME, { keyPath: ['ip', 'dateKey'] });
+            store.createIndex('by_ip', 'ip', { unique: false });
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function loadAllEntriesForProfile() {
+      if (!dbInstance) return [];
+      return new Promise((resolve) => {
+        try {
+          const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const index = store.index('by_ip');
+          const req = index.getAll(IDBKeyRange.only(profileScopeKey));
+          req.onsuccess = () => {
+            const list = (req.result || []).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+            resolve(list);
+          };
+          req.onerror = () => resolve([]);
+        } catch (_) {
+          resolve([]);
+        }
+      });
+    }
+
+    async function persistEntry(record) {
+      if (!dbInstance) return;
+      return new Promise((resolve, reject) => {
+        try {
+          const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(record);
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => reject(req.error);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    /**
+     * =========================================================================
+     * 3. DAILY REMINDER PREFERENCES
+     * =========================================================================
+     */
+    function toggleReminderDrawer() {
+      document.getElementById('reminder-drawer').classList.toggle('hidden');
+    }
+
+    function initReminders() {
+      try {
+        const raw = localStorage.getItem(REMINDER_STORAGE_KEY);
+        if (raw) {
+          const cfg = JSON.parse(raw);
+          document.getElementById('reminder-enabled-checkbox').checked = !!cfg.enabled;
+          if (cfg.time) document.getElementById('reminder-time-input').value = cfg.time;
+          updateReminderDot(!!cfg.enabled);
+        }
+      } catch (_) {}
+
+      if (reminderIntervalId) clearInterval(reminderIntervalId);
+      reminderIntervalId = setInterval(() => {
+        const enabled = document.getElementById('reminder-enabled-checkbox').checked;
+        if (!enabled) return;
+        const targetTime = document.getElementById('reminder-time-input').value;
+        const now = new Date();
+        const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        if (currentHHMM === targetTime && lastNotifiedMinute !== currentHHMM) {
+          lastNotifiedMinute = currentHHMM;
+          const todayKey = getLocalDateKey(0);
+          const todayEntry = entries.find(e => e.dateKey === todayKey);
+          if (!todayEntry) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const n = new Notification('Body Battery Check-In', {
+                body: 'Take a quiet moment to assess your recovery today.'
+              });
+              n.onclick = () => { window.focus(); openQuizModal(); };
+            }
+            showToast('Time for your daily Body Battery check-in.');
+            openQuizModal();
+          }
+        }
+      }, 20000);
+    }
+
+    function handleReminderToggle(isChecked) {
+      if (isChecked && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+      saveReminderSettings();
+    }
+
+    function saveReminderSettings() {
+      const enabled = document.getElementById('reminder-enabled-checkbox').checked;
+      const time = document.getElementById('reminder-time-input').value;
+      try {
+        localStorage.setItem(REMINDER_STORAGE_KEY, JSON.stringify({ enabled, time }));
+      } catch (_) {}
+      updateReminderDot(enabled);
+      showToast(enabled ? `Daily reminder set for ${time}.` : 'Daily reminder turned off.');
+    }
+
+    function updateReminderDot(active) {
+      const dot = document.getElementById('reminder-active-dot');
+      if (active) dot.classList.remove('hidden');
+      else dot.classList.add('hidden');
+    }
+
+    /**
+     * =========================================================================
+     * 4. DAILY CHECK-IN MODAL & SINGLE-EDIT RULE ENFORCEMENT
+     * =========================================================================
+     */
+    function openQuizModal() {
+      const todayKey = getLocalDateKey(0);
+      const todayEntry = entries.find(e => e.dateKey === todayKey);
+
+      // Enforce single-edit rule: if already edited once today, block further edits
+      if (todayEntry && (todayEntry.editCount || 0) >= 1) {
+        showToast('Today’s check-in is complete and locked after your one-time edit.');
+        return;
+      }
+
+      if (todayEntry) {
+        currentQuizAnswers = [...todayEntry.answers];
+        document.getElementById('workbook-note-input').value = todayEntry.note || '';
+        document.getElementById('modal-day-badge').textContent = 'One-Time Edit';
+        document.getElementById('modal-edit-warning').classList.remove('hidden');
+        document.getElementById('modal-submit-btn').textContent = 'Save Final Update';
+      } else {
+        currentQuizAnswers = new Array(9).fill(false);
+        document.getElementById('workbook-note-input').value = '';
+        document.getElementById('modal-day-badge').textContent = 'Daily Reflection';
+        document.getElementById('modal-edit-warning').classList.add('hidden');
+        document.getElementById('modal-submit-btn').textContent = 'Submit Assessment';
+      }
+
+      const now = new Date();
+      document.getElementById('modal-date-display').textContent = now.toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      renderQuizStatements();
+      updateModalLiveScore();
+
+      const modal = document.getElementById('quiz-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeQuizModal() {
+      const modal = document.getElementById('quiz-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function toggleStatementAnswer(idx) {
+      currentQuizAnswers[idx] = !currentQuizAnswers[idx];
+      renderQuizStatements();
+      updateModalLiveScore();
+    }
+
+    function resetQuizSelections() {
+      currentQuizAnswers = new Array(9).fill(false);
+      renderQuizStatements();
+      updateModalLiveScore();
+    }
+
+    function renderQuizStatements() {
+      const container = document.getElementById('quiz-statements-list');
+      container.innerHTML = STATEMENTS.map((item, idx) => {
+        const checked = currentQuizAnswers[idx];
+        return `
+          <button type="button" onclick="toggleStatementAnswer(${idx})"
+            class="w-full text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+              checked
+                ? 'border-stone-ink bg-stone-canvas'
+                : 'border-stone-border bg-white hover:border-stone-400'
+            }">
+            <div class="flex items-center gap-3.5">
+              <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0 border transition-colors ${
+                checked
+                  ? 'bg-stone-ink border-stone-ink text-white'
+                  : 'border-stone-300 bg-white'
+              }">
+                ${checked ? `
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                ` : ''}
+              </div>
+              <span class="text-sm ${checked ? 'font-medium text-stone-ink' : 'text-stone-muted'}">
+                ${item.text}
+              </span>
+            </div>
+            <span class="shrink-0 text-[11px] font-medium text-stone-soft px-2 py-0.5 rounded bg-stone-canvas border border-stone-border">
+              ${item.source}
+            </span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function updateModalLiveScore() {
+      const score = currentQuizAnswers.filter(Boolean).length;
+      const tier = getAssessmentTier(score);
+
+      document.getElementById('modal-live-score').textContent = score;
+      const titleEl = document.getElementById('modal-verdict-title');
+      titleEl.textContent = tier.title;
+      titleEl.className = `text-sm font-semibold ${tier.textStyle}`;
+
+      document.getElementById('modal-verdict-range').textContent = `${tier.range} statements true`;
+      document.getElementById('modal-verdict-desc').textContent = tier.commentary;
+    }
+
+    async function submitDailyAssessment() {
+      const todayKey = getLocalDateKey(0);
+      const existing = entries.find(e => e.dateKey === todayKey);
+
+      if (existing && (existing.editCount || 0) >= 1) {
+        closeQuizModal();
+        return;
+      }
+
+      const note = document.getElementById('workbook-note-input').value.trim();
+      const isEdit = Boolean(existing);
+
+      const record = {
+        ip: profileScopeKey,
+        dateKey: todayKey,
+        answers: [...currentQuizAnswers],
+        note,
+        pinnedIngredients: existing ? (existing.pinnedIngredients || []) : [],
+        editCount: isEdit ? 1 : 0,
+        updatedAt: new Date().toISOString()
+      };
+
+      await persistEntry(record);
+      entries = await loadAllEntriesForProfile();
+      activeDateKey = todayKey;
+
+      // Auto-focus the source with lowest percentage so user sees their biggest opportunity right away
+      const lowestSource = findLowestScoringSource(record.answers);
+      if (lowestSource) {
+        selectedSourceKey = lowestSource.key;
+      }
+
+      closeQuizModal();
+      refreshDashboard();
+
+      if (isEdit) {
+        showToast('Final update saved. Today’s check-in is now locked.');
+      } else {
+        showToast('Today’s Body Battery check-in saved. You may edit it once if needed.');
+      }
+    }
+
+    /**
+     * =========================================================================
+     * 5. INGREDIENTS OF WELL-BEING & BOOKMARKING
+     * =========================================================================
+     */
+    function getSourceScores(answers) {
+      return WELLBEING_SOURCES.map(src => {
+        const earned = src.statementIndices.filter(i => answers[i]).length;
+        const max = src.statementIndices.length;
+        const pct = max > 0 ? earned / max : 0;
+        return { ...src, earned, max, pct };
+      });
+    }
+
+    function findLowestScoringSource(answers) {
+      const scores = getSourceScores(answers);
+      const sorted = [...scores].sort((a, b) => a.pct - b.pct);
+      return sorted[0] || scores[0];
+    }
+
+    function setSelectedSource(key) {
+      selectedSourceKey = key;
+      renderIngredientsSection();
+    }
+
+    function setPracticeAudience(aud) {
+      selectedAudience = aud;
+      const activeCls = 'px-3 py-1.5 rounded-md text-xs font-medium bg-white text-stone-ink shadow-sm transition-all';
+      const inactiveCls = 'px-3 py-1.5 rounded-md text-xs font-medium text-stone-muted hover:text-stone-ink transition-all';
+
+      document.getElementById('aud-both-btn').className = aud === 'both' ? activeCls : inactiveCls;
+      document.getElementById('aud-ind-btn').className = aud === 'individual' ? activeCls : inactiveCls;
+      document.getElementById('aud-team-btn').className = aud === 'team' ? activeCls : inactiveCls;
+
+      renderIngredientsSection();
+    }
+
+    async function togglePinIngredient(sourceKey, categoryName, practiceText) {
+      const todayKey = getLocalDateKey(0);
+      const todayEntry = entries.find(e => e.dateKey === todayKey);
+
+      if (!todayEntry) {
+        showToast('Complete today’s check-in first to pin focus ingredients.');
+        openQuizModal();
+        return;
+      }
+
+      const id = `${sourceKey}::${categoryName}::${practiceText}`;
+      const currentPins = Array.isArray(todayEntry.pinnedIngredients) ? [...todayEntry.pinnedIngredients] : [];
+      const existingIdx = currentPins.findIndex(p => p.id === id);
+
+      if (existingIdx >= 0) {
+        currentPins.splice(existingIdx, 1);
+        showToast('Removed from today’s focus practices.');
+      } else {
+        if (currentPins.length >= 3) {
+          showToast('You can pin up to 3 focus practices per day.');
+          return;
+        }
+        currentPins.push({ id, source: sourceKey, category: categoryName, text: practiceText });
+        showToast('Pinned to today’s focus practices.');
+      }
+
+      todayEntry.pinnedIngredients = currentPins;
+      await persistEntry(todayEntry);
+      entries = await loadAllEntriesForProfile();
+      refreshDashboard();
+    }
+
+    function renderIngredientsSection() {
+      const currentEntry = entries.find(e => e.dateKey === activeDateKey) || entries[0];
+      const answers = currentEntry ? currentEntry.answers : new Array(9).fill(false);
+      const sourceScores = getSourceScores(answers);
+
+      // Highlight lowest scoring source when an entry exists
+      const oppPill = document.getElementById('biggest-opportunity-pill');
+      if (currentEntry) {
+        const minPct = Math.min(...sourceScores.map(s => s.pct));
+        if (minPct < 1) {
+          const lowestNames = sourceScores.filter(s => s.pct === minPct).map(s => s.label);
+          oppPill.textContent = `Biggest opportunity: ${lowestNames.join(' & ')}`;
+          oppPill.classList.remove('hidden');
+        } else {
+          oppPill.textContent = 'All four sources balanced';
+          oppPill.classList.remove('hidden');
+        }
+      } else {
+        oppPill.classList.add('hidden');
+      }
+
+      // Render 4 Source Tabs
+      const tabsContainer = document.getElementById('source-tabs-container');
+      tabsContainer.innerHTML = sourceScores.map(src => {
+        const isActive = src.key === selectedSourceKey;
+        return `
+          <button onclick="setSelectedSource('${src.key}')"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium border transition-all ${
+              isActive
+                ? 'bg-stone-ink text-white border-stone-ink'
+                : 'bg-stone-canvas text-stone-muted border-stone-border hover:text-stone-ink hover:border-stone-400'
+            }">
+            <span>${src.label}</span>
+            <span class="font-mono text-[11px] tabular-nums ${isActive ? 'text-stone-300' : 'text-stone-soft'}">
+              ${src.earned}/${src.max}
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      // Render Categories for Selected Source
+      const activeSource = WELLBEING_SOURCES.find(s => s.key === selectedSourceKey) || WELLBEING_SOURCES[0];
+      const todayEntry = entries.find(e => e.dateKey === getLocalDateKey(0));
+      const pinnedIds = new Set((todayEntry?.pinnedIngredients || []).map(p => p.id));
+
+      const grid = document.getElementById('ingredients-categories-grid');
+      grid.innerHTML = activeSource.categories.map(cat => {
+        const showInd = selectedAudience === 'both' || selectedAudience === 'individual';
+        const showTeam = selectedAudience === 'both' || selectedAudience === 'team';
+
+        const renderPracticeItem = (text, audienceLabel) => {
+          const pinId = `${activeSource.key}::${cat.name}::${text}`;
+          const isPinned = pinnedIds.has(pinId);
+          const safeSource = activeSource.key.replace(/'/g, "\\'");
+          const safeCat = cat.name.replace(/'/g, "\\'");
+          const safeText = text.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+          return `
+            <li class="flex items-start justify-between gap-3 py-2 border-b border-stone-border/60 last:border-b-0">
+              <div class="flex items-start gap-2.5 text-sm text-stone-muted leading-relaxed">
+                <span class="w-1.5 h-1.5 rounded-full bg-stone-400 mt-2 shrink-0"></span>
+                <span>${text}</span>
+              </div>
+              <button type="button" onclick="togglePinIngredient('${safeSource}', '${safeCat}', '${safeText}')"
+                title="${isPinned ? 'Unpin from today’s focus' : 'Pin to today’s focus'}"
+                class="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
+                  isPinned
+                    ? 'bg-stone-ink text-white border-stone-ink'
+                    : 'bg-white text-stone-muted border-stone-border hover:text-stone-ink hover:border-stone-400'
+                }">
+                ${isPinned ? 'Pinned' : '+ Focus'}
+              </button>
+            </li>
+          `;
+        };
+
+        return `
+          <div class="rounded-xl bg-stone-canvas border border-stone-border p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-border pb-3">
+              <h3 class="font-serif text-2xl text-stone-ink">${cat.name}</h3>
+              <span class="text-[11px] uppercase tracking-wider text-stone-soft">${activeSource.label}</span>
+            </div>
+
+            ${showInd ? `
+              <div>
+                <h4 class="text-[11px] font-semibold uppercase tracking-widest text-stone-ink mb-1.5">Individual</h4>
+                <ul>
+                  ${cat.individual.map(item => renderPracticeItem(item, 'Individual')).join('')}
+                </ul>
+              </div>
+            ` : ''}
+
+            ${showTeam ? `
+              <div class="${showInd ? 'pt-2' : ''}">
+                <h4 class="text-[11px] font-semibold uppercase tracking-widest text-stone-soft mb-1.5">Team</h4>
+                <ul>
+                  ${cat.team.map(item => renderPracticeItem(item, 'Team')).join('')}
+                </ul>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * =========================================================================
+     * 6. DASHBOARD RENDERING
+     * =========================================================================
+     */
+    function refreshDashboard() {
+      const todayKey = getLocalDateKey(0);
+      const todayEntry = entries.find(e => e.dateKey === todayKey);
+
+      // Update top pending banner & header button state
+      const pendingBanner = document.getElementById('pending-today-banner');
+      const headerBtn = document.getElementById('header-checkin-btn');
+      const headerBtnText = document.getElementById('header-checkin-btn-text');
+
+      if (!todayEntry) {
+        pendingBanner.classList.remove('hidden');
+        document.getElementById('banner-date-label').textContent = new Date().toLocaleDateString(undefined, {
+          weekday: 'long', month: 'short', day: 'numeric'
+        });
+        headerBtn.disabled = false;
+        headerBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-stone-ink text-white hover:bg-zinc-800 transition-all';
+        headerBtnText.textContent = 'Today’s Check-In';
+      } else if ((todayEntry.editCount || 0) < 1) {
+        pendingBanner.classList.add('hidden');
+        headerBtn.disabled = false;
+        headerBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-white text-stone-ink border border-stone-border hover:border-stone-400 transition-all';
+        headerBtnText.textContent = 'Edit Today’s Check-In (1 edit left)';
+      } else {
+        pendingBanner.classList.add('hidden');
+        headerBtn.disabled = true;
+        headerBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-stone-subtle text-stone-soft border border-stone-border cursor-default';
+        headerBtnText.textContent = 'Completed for Today';
+      }
+
+      // Determine viewed entry (activeDateKey if present, else latest, else null)
+      let viewedEntry = entries.find(e => e.dateKey === activeDateKey);
+      if (!viewedEntry && entries.length > 0) {
+        viewedEntry = entries[0];
+        activeDateKey = viewedEntry.dateKey;
+      }
+
+      const answers = viewedEntry ? viewedEntry.answers : new Array(9).fill(false);
+      const score = answers.filter(Boolean).length;
+      const pct = Math.round((score / 9) * 100);
+      const tier = getAssessmentTier(score);
+
+      // Card Header & Single-Edit Control
+      document.getElementById('active-entry-date-title').textContent = viewedEntry
+        ? `${formatFriendlyDate(viewedEntry.dateKey)}’s Battery`
+        : 'Today’s Battery';
+
+      const editPillContainer = document.getElementById('edit-status-pill');
+      if (viewedEntry && viewedEntry.dateKey === todayKey) {
+        if ((viewedEntry.editCount || 0) < 1) {
+          editPillContainer.innerHTML = `
+            <button onclick="openQuizModal()" class="text-xs font-medium text-stone-ink underline underline-offset-4 hover:text-stone-muted">
+              Edit (1 left)
+            </button>
+          `;
+        } else {
+          editPillContainer.innerHTML = `
+            <span class="inline-flex items-center gap-1 text-[11px] font-medium text-stone-soft bg-stone-canvas px-2.5 py-1 rounded-md border border-stone-border">
+              Locked • 1/1 edit used
+            </span>
+          `;
+        }
+      } else {
+        editPillContainer.innerHTML = '';
+      }
+
+      // 9-Cell Segmented Battery Meter
+      document.getElementById('battery-score-number').textContent = score;
+      document.getElementById('battery-percent-label').textContent = `${pct}% charged`;
+
+      const cellsContainer = document.getElementById('battery-cells-container');
+      cellsContainer.innerHTML = Array.from({ length: 9 }, (_, idx) => {
+        const filled = idx < score;
+        return `
+          <div class="h-full rounded-[4px] transition-all duration-300 ${filled ? '' : 'bg-stone-200/70'}"
+               style="${filled ? `background-color: ${tier.cellFill};` : ''}"></div>
+        `;
+      }).join('');
+
+      // Tier Feedback & Course Bullets
+      const tierBadge = document.getElementById('tier-badge');
+      tierBadge.textContent = `${tier.range} Statements True`;
+      tierBadge.className = `inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${tier.badgeStyle}`;
+
+      document.getElementById('tier-title').textContent = tier.title;
+      document.getElementById('tier-commentary').textContent = tier.commentary;
+
+      document.getElementById('tier-focus-list').innerHTML = tier.bullets.map(b => `
+        <li class="flex items-start gap-2.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-stone-ink mt-2 shrink-0"></span>
+          <span>${b}</span>
+        </li>
+      `).join('');
+
+      // Four Sources Mini Breakdown
+      const sourceScores = getSourceScores(answers);
+      document.getElementById('pillar-bars-container').innerHTML = sourceScores.map(src => {
+        const ratio = Math.round(src.pct * 100);
+        return `
+          <div class="p-3 rounded-lg bg-stone-canvas border border-stone-border">
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <span class="font-medium text-stone-ink truncate">${src.label}</span>
+              <span class="font-mono text-[11px] tabular-nums text-stone-muted">${src.earned}/${src.max}</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-stone-200 overflow-hidden">
+              <div class="h-full rounded-full bg-stone-ink transition-all duration-300" style="width: ${ratio}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Pinned Ingredients for Viewed Entry
+      const pinnedContainer = document.getElementById('pinned-ingredients-container');
+      const pins = viewedEntry?.pinnedIngredients || [];
+      if (pins.length === 0) {
+        pinnedContainer.innerHTML = `
+          <span class="text-xs text-stone-soft italic">No focus ingredients pinned for this day yet.</span>
+        `;
+      } else {
+        const isToday = viewedEntry && viewedEntry.dateKey === todayKey;
+        pinnedContainer.innerHTML = pins.map(p => {
+          const safeSource = p.source.replace(/'/g, "\\'");
+          const safeCat = p.category.replace(/'/g, "\\'");
+          const safeText = p.text.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return `
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-canvas border border-stone-border text-xs text-stone-ink">
+              <span class="font-semibold text-stone-soft">${p.category}:</span>
+              <span>${p.text}</span>
+              ${isToday ? `
+                <button onclick="togglePinIngredient('${safeSource}', '${safeCat}', '${safeText}')" title="Unpin" class="text-stone-soft hover:text-stone-ink ml-1">×</button>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Workbook Reflection Box
+      const refBox = document.getElementById('saved-reflection-box');
+      if (viewedEntry && viewedEntry.note) {
+        refBox.classList.remove('hidden');
+        document.getElementById('saved-reflection-text').textContent = `“${viewedEntry.note}”`;
+        document.getElementById('reflection-date-tag').textContent = formatFriendlyDate(viewedEntry.dateKey);
+      } else {
+        refBox.classList.add('hidden');
+      }
+
+      // Summary Stats (Real entries only)
+      updateStatsSummary();
+
+      // Ingredients Section & History List
+      renderIngredientsSection();
+      renderHistoryList();
+    }
+
+    function updateStatsSummary() {
+      document.getElementById('stat-total').textContent = entries.length;
+      if (entries.length === 0) {
+        document.getElementById('stat-avg').textContent = '—';
+        document.getElementById('stat-streak').textContent = '0d';
+        return;
+      }
+
+      const sum = entries.reduce((acc, e) => acc + e.answers.filter(Boolean).length, 0);
+      document.getElementById('stat-avg').textContent = `${(sum / entries.length).toFixed(1)}/9`;
+
+      const dateSet = new Set(entries.map(e => e.dateKey));
+      let streak = 0;
+      let offset = dateSet.has(getLocalDateKey(0)) ? 0 : (dateSet.has(getLocalDateKey(-1)) ? -1 : null);
+      if (offset !== null) {
+        while (dateSet.has(getLocalDateKey(offset))) {
+          streak++;
+          offset--;
+        }
+      }
+      document.getElementById('stat-streak').textContent = `${streak}d`;
+    }
+
+    function renderHistoryList() {
+      const container = document.getElementById('history-log-list');
+      if (entries.length === 0) {
+        container.innerHTML = `
+          <div class="sm:col-span-2 lg:col-span-3 rounded-xl border border-dashed border-stone-border bg-stone-canvas/60 p-8 text-center">
+            <p class="font-serif text-2xl text-stone-ink">No reflections recorded yet</p>
+            <p class="text-xs sm:text-sm text-stone-muted mt-1 max-w-md mx-auto">
+              Once you submit today’s check-in, your daily battery levels, workbook notes, and pinned focus practices will appear here.
+            </p>
+            <button onclick="openQuizModal()" class="mt-4 px-4 py-2 rounded-lg text-xs font-medium bg-stone-ink text-white hover:bg-zinc-800 transition-colors">
+              Complete Today’s Check-In
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = entries.map(entry => {
+        const score = entry.answers.filter(Boolean).length;
+        const tier = getAssessmentTier(score);
+        const isSelected = entry.dateKey === activeDateKey;
+
+        return `
+          <button type="button" onclick="selectHistoryEntry('${entry.dateKey}')"
+            class="text-left p-4 rounded-xl border transition-all flex flex-col justify-between ${
+              isSelected
+                ? 'border-stone-ink bg-stone-canvas'
+                : 'border-stone-border bg-white hover:border-stone-400'
+            }">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-stone-ink">${formatFriendlyDate(entry.dateKey)}</span>
+                <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded border ${tier.badgeStyle} tabular-nums">
+                  ${score}/9
+                </span>
+              </div>
+              <p class="text-xs font-medium mt-2 ${tier.textStyle}">${tier.title}</p>
+              ${entry.note ? `<p class="text-xs text-stone-muted mt-1.5 line-clamp-2">“${entry.note}”</p>` : ''}
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-stone-border/70 flex items-center justify-between text-[11px] text-stone-soft">
+              <span>${entry.dateKey}</span>
+              <span>${(entry.pinnedIngredients || []).length} pinned</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectHistoryEntry(dateKey) {
+      activeDateKey = dateKey;
+      const entry = entries.find(e => e.dateKey === dateKey);
+      if (entry) {
+        const lowest = findLowestScoringSource(entry.answers);
+        if (lowest) selectedSourceKey = lowest.key;
+      }
+      refreshDashboard();
+    }
+
+    /**
+     * =========================================================================
+     * 7. GENTLE TOAST FEEDBACK & INITIALIZATION
+     * =========================================================================
+     */
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto px-4 py-3 rounded-xl bg-stone-ink text-white text-xs sm:text-sm font-medium shadow-lg transition-all duration-300';
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(6px)';
+        setTimeout(() => toast.remove(), 260);
+      }, 3400);
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      initReminders();
+
+      // Silently resolve profile scope & open on-device database
+      const [scope, db] = await Promise.all([
+        resolveSilentScopeKey(),
+        openIndexedDB().catch(() => null)
+      ]);
+      profileScopeKey = scope;
+      dbInstance = db;
+
+      entries = await loadAllEntriesForProfile();
+
+      const todayKey = getLocalDateKey(0);
+      const todayEntry = entries.find(e => e.dateKey === todayKey);
+
+      if (todayEntry) {
+        activeDateKey = todayKey;
+        const lowest = findLowestScoringSource(todayEntry.answers);
+        if (lowest) selectedSourceKey = lowest.key;
+      } else if (entries.length > 0) {
+        activeDateKey = entries[0].dateKey;
+      } else {
+        activeDateKey = todayKey;
+      }
+
+      refreshDashboard();
+
+      // Automatically prompt once per day if today's check-in has not been submitted
+      if (!todayEntry) {
+        setTimeout(() => {
+          openQuizModal();
+        }, 400);
+      }
+    });
+  </script>
+</body>
+</html>
