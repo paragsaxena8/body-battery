@@ -1,0 +1,106 @@
+:root {
+    --bg-paper: #F7F6F2;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #EFECE4;
+    --ink-primary: #18181B;
+    --ink-secondary: #52525B;
+    --border-hairline: #E2DFD7;
+}
+
+html.dark {
+    --bg-paper: #121214;
+    --bg-card: #1C1C20;
+    --bg-subtle: #25252B;
+    --ink-primary: #F4F3EE;
+    --ink-secondary: #A1A1AA;
+    --border-hairline: #2E2E34;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+    background-color: var(--bg-paper);
+    color: var(--ink-primary);
+    font-family: 'Patrick Hand', cursive, sans-serif;
+    font-size: 18px;
+    line-height: 1.5;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.font-script {
+    font-family: 'Caveat', cursive, sans-serif;
+}
+
+.font-hand {
+    font-family: 'Patrick Hand', cursive, sans-serif;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+.paper-card {
+    background-color: var(--bg-card);
+    border: 1.5px solid var(--border-hairline);
+    transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+}
+
+.paper-subtle {
+    background-color: var(--bg-subtle);
+    border: 1.5px solid var(--border-hairline);
+}
+
+.touch-target {
+    min-height: 48px;
+    min-width: 48px;
+}
+
+/* Hide scrollbar on horizontal mobile category pills while allowing smooth swipe */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Safe-area spacing for phones with notches/home bars */
+.pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.mb-safe-bar {
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+
+/* Bottom sheet entrance animation on mobile */
+@keyframes sheetSlideUp {
+    from {
+        transform: translateY(28px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.sheet-animate {
+    animation: sheetSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Subtle notebook line accent */
+.notebook-rule {
+    background-image: repeating-linear-gradient(to bottom,
+            transparent 0px,
+            transparent 31px,
+            rgba(120, 113, 108, 0.12) 32px);
+}
